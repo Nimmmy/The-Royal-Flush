@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AddRestroomSheet } from '../src/components/AddRestroomSheet';
 import { RestroomDetailSheet } from '../src/components/RestroomDetailSheet';
@@ -54,6 +54,44 @@ it('warns about a nearby duplicate before submitting', async () => {
   await user.click(screen.getByRole('button', { name: 'Add Restroom' }));
   expect(screen.getByText(/may already exist/)).toBeTruthy(); expect(addRestroom).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: 'View existing' })); expect(view).toHaveBeenCalledWith(record);
+});
+it('registers a Safari address tap after validation, even though Safari does not focus buttons', async () => {
+  const user = userEvent.setup(); const saved = vi.fn();
+  render(<AddRestroomSheet onClose={vi.fn()} onSaved={saved} restrooms={[]} onView={vi.fn()} />);
+  await user.type(screen.getByLabelText(/Location name/), record.locationName);
+  await user.click(screen.getByRole('radio', { name: '4 stars — Great' }));
+  await user.click(screen.getByRole('button', { name: 'Add Restroom' }));
+  expect(screen.getByText('Choose an address from the search results.')).toBeTruthy();
+  const input = screen.getByRole('combobox');
+  await user.type(input, '405 South Santa Anita Avenue Arcadia');
+  const option = await screen.findByRole('option', { name: record.address }, { timeout: 2500 });
+  fireEvent.pointerDown(option, { pointerType: 'touch', pointerId: 1 });
+  fireEvent.pointerUp(option, { pointerType: 'touch', pointerId: 1 });
+  // Safari's compatibility mousedown blurs the input without focusing the button.
+  // Like a browser default action, that blur must only run when mousedown isn't cancelled.
+  if (fireEvent.mouseDown(option, { button: 0 })) fireEvent.blur(input, { relatedTarget: null });
+  fireEvent.mouseUp(option, { button: 0 });
+  fireEvent.click(option);
+  expect(screen.getByTestId('pin-preview')).toBeTruthy();
+  expect(screen.queryByText('Choose an address from the search results.')).toBeNull();
+  await user.click(screen.getByRole('button', { name: 'Add Restroom' }));
+  await waitFor(() => expect(saved).toHaveBeenCalledWith(record));
+  expect(addRestroom).toHaveBeenCalledWith(expect.objectContaining({ address: record.address, latitude: record.latitude, longitude: record.longitude }));
+});
+it('does not select an address when a touch becomes a scroll; keyboard selection still works', async () => {
+  const user = userEvent.setup();
+  render(<AddRestroomSheet onClose={vi.fn()} onSaved={vi.fn()} restrooms={[]} onView={vi.fn()} />);
+  const input = screen.getByRole('combobox');
+  await user.type(input, 'Arcadia County Park');
+  const option = await screen.findByRole('option', { name: record.address }, { timeout: 2500 });
+  fireEvent.pointerDown(option, { pointerType: 'touch', pointerId: 1 });
+  fireEvent.pointerMove(option, { pointerType: 'touch', pointerId: 1, clientY: 80 });
+  fireEvent.pointerCancel(option, { pointerType: 'touch', pointerId: 1 });
+  expect(screen.queryByTestId('pin-preview')).toBeNull();
+  expect(screen.getByRole('option', { name: record.address })).toBeTruthy();
+  await user.keyboard('{ArrowDown}{Enter}');
+  expect(screen.getByTestId('pin-preview')).toBeTruthy();
+  expect(screen.queryByRole('listbox')).toBeNull();
 });
 it('renders both code states, copies the code and uses coordinate directions', async () => {
   const user = userEvent.setup(); const notify = vi.fn();

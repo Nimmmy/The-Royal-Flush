@@ -70,7 +70,13 @@ export function AddressSearch({ onSelect, label = 'Search an address, city, or p
       {busy ? <LoaderCircle className="spin search-spinner" size={19} aria-label="Searching" /> : query && <button type="button" className="icon-button clear-search" aria-label="Clear search" onClick={() => { selectedText.current = ''; setQuery(''); setOpen(false); onQueryChange?.(); input.current?.focus(); }}><X size={18} /></button>}
     </div>
     {error && <span className="field-error" id={`${id}-error`}>{error}</span>}
-    {open && query.trim().length >= 3 && <div className="search-dropdown">
+    {open && query.trim().length >= 3 && <div className="search-dropdown" onMouseDown={event => {
+      // Safari doesn't focus tapped buttons: its default mousedown blurs the
+      // input, unmounting results before click can select one. Keep input focus.
+      // Use mousedown (also emitted after a touch tap), not pointerdown, so
+      // scrolling stays native and iOS's pointerdown focus bug is avoided.
+      if (event.button === 0) event.preventDefault();
+    }}>
       <div id={`${id}-results`} role="listbox" aria-label="Search results">{options.map((option, index) => <button type="button" role="option" aria-selected={active === index} id={`${id}-option-${index}`} key={`${option.name}-${index}`} className={active === index ? 'result active' : 'result'} onClick={() => choose(index)} onMouseEnter={() => setActive(index)}>
         {option.restroom ? <Crown size={18} /> : <MapPin size={18} />}<span>{option.name}{option.sub && <small>{option.sub}</small>}</span>
       </button>)}</div>
