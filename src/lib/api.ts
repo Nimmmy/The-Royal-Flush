@@ -3,13 +3,14 @@ import { validateRestroom } from './validation';
 
 export class ApiError extends Error {
   fields?: FieldErrors;
-  constructor(message: string, fields?: FieldErrors) { super(message); this.fields = fields; }
+  currentRestroom?: Restroom;
+  constructor(message: string, fields?: FieldErrors, currentRestroom?: Restroom) { super(message); this.fields = fields; this.currentRestroom = currentRestroom; }
 }
 async function request(path: string, init?: RequestInit) {
   const response = await fetch(path, { ...init, signal: init?.signal || AbortSignal.timeout(20000) });
   let body;
   try { body = await response.json(); } catch { throw new ApiError('The server returned an unexpected response. Please try again.'); }
-  if (!response.ok) throw new ApiError(body.error || (response.status === 429 ? 'Too many searches. Please wait a moment and try again.' : 'Something went wrong. Please try again.'), body.errors);
+  if (!response.ok) throw new ApiError(body.error || (response.status === 429 ? 'Too many searches. Please wait a moment and try again.' : 'Something went wrong. Please try again.'), body.errors, isRestroom(body.currentRestroom) ? body.currentRestroom : undefined);
   return body;
 }
 function isRestroom(value: unknown): value is Restroom {
@@ -24,6 +25,11 @@ export async function fetchRestrooms() {
 export async function addRestroom(data: RestroomInput) {
   const body = await request('/api/restrooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   if (!isRestroom(body.restroom)) throw new ApiError('The saved restroom response was unexpected. Refresh the map before trying again.');
+  return body.restroom;
+}
+export async function updateRestroom(restroom: Restroom, data: RestroomInput) {
+  const body = await request(`/api/restrooms/${encodeURIComponent(restroom.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, expectedUpdatedAt: restroom.updatedAt }) });
+  if (!isRestroom(body.restroom) || body.restroom.id !== restroom.id) throw new ApiError('The saved restroom response was unexpected. Refresh the map before trying again.');
   return body.restroom;
 }
 export async function geocode(query: string, signal: AbortSignal) {

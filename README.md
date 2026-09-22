@@ -45,7 +45,7 @@ The acceptance script starts and stops its own local Netlify Dev server, verifie
 
 Each record has a server-generated UUID at `restrooms/{uuid}`, a normalized input body, and server-generated ISO timestamps. GET lists all pages and reads objects in bounded batches with strong consistency. Simultaneous submissions cannot overwrite a shared collection because they have separate keys. Client IDs, timestamps, and arbitrary extra fields are ignored. No restroom records are stored in LocalStorage or cookies. Geolocation only updates client memory and is never posted.
 
-All visitors can read and submit. Version 1 does not expose an edit/delete API. Operational cleanup uses authenticated Netlify Blobs tools or the dashboard and the exact known test UUID; never delete a collection to clean one test record. Back up and inspect any existing production store before introducing a schema migration.
+All visitors can read, submit and edit. There is no public delete API. Operational cleanup uses authenticated Netlify Blobs tools or the dashboard and the exact known test UUID; never delete a collection to clean one test record. Back up and inspect any existing production store before introducing a schema migration.
 
 ## API
 
@@ -53,10 +53,11 @@ All visitors can read and submit. Version 1 does not expose an edit/delete API. 
 | --- | --- | --- |
 | GET | `/api/restrooms` | All restroom records, newest first, no HTTP response cache |
 | POST | `/api/restrooms` | Validates JSON, creates one record, returns `{restroom}` with HTTP 201 |
+| PUT | `/api/restrooms/:id` | Updates a listing with `expectedUpdatedAt`; returns 200 or 409 on a conflicting edit |
 | GET | `/api/geocode?q=...` | Up to five Photon results with display names and numeric coordinates |
 | GET | `/api/health` | Verifies access to the current Blobs store and reports its name |
 
-POST requires `locationName` (2–120 characters), `address` (5–250), numeric valid `latitude`/`longitude`, and integer `rating` (1–5). `mensCode` and `womensCode` are optional text up to 50 characters; blanks become `null`. Notes are optional text up to 1,000 characters. All text is trimmed. HTML tags and invalid control characters are rejected, and React escapes display content. The server limits request bodies to 16 KB. Errors use human-readable JSON and appropriate HTTP status codes.
+POST and PUT require `locationName` (2–120 characters), `address` (5–250), numeric valid `latitude`/`longitude`, and integer `rating` (1–5). `mensCode` and `womensCode` are optional text up to 50 characters; blanks become `null`. Notes are optional text up to 1,000 characters. All text is trimmed. HTML tags and invalid control characters are rejected, and React escapes display content. The server limits request bodies to 16 KB. Errors use human-readable JSON and appropriate HTTP status codes.
 
 ## Geocoding decision and provider policies
 
@@ -112,7 +113,7 @@ src/
   styles.css                   Responsive layout and design
   types.ts                     Shared types
 netlify/functions/
-  restrooms.ts                 GET / POST shared records
+  restrooms.ts                 GET / POST / PUT shared records
   geocode.ts                   Cached Photon proxy
   health.ts                    Storage health
   _shared/storage.ts           Scope selection and JSON responses
@@ -124,9 +125,16 @@ scripts/local-acceptance.mjs    Real local Netlify Dev API check
 
 - One submitted rating per location, not an aggregate of community reviews.
 - Public anonymous information and codes are unverified and may become stale.
-- No editing, deleting, reporting, photo upload, accounts, or moderation interface.
+- Anyone can edit the full listing without an account. Conflicting edits are rejected so contributors can review the latest version. No deleting, reporting, photo upload, accounts, or moderation interface.
 - New submissions appear immediately to their author; other already-open tabs use Refresh Restrooms or reload. There is no aggressive polling.
 - Fetch-all storage works for an initial community launch. Larger scale needs viewport queries and an indexed database instead of reading every object.
 - Free public mapping/geocoding services have best-effort availability. Provider and hosting plan capacity should be reviewed with real traffic.
 
-Version 2 priorities: report outdated information, update/verify codes, multiple community ratings and averages, accessibility and changing-table filters, then photos.
+Version 2 priorities: report outdated information, code verification history, multiple community ratings and averages, accessibility and changing-table filters, then photos.
+
+
+## Editing a listing
+
+Open a restroom marker and select **Edit**. The form starts with the existing name, address, coordinates, both codes, rating and notes. Select **Save Changes** to update that same record. Clearing an optional code removes it. The address does not need to be searched again unless it changes; the pin remains adjustable.
+
+`PUT /api/restrooms/:id` accepts the same validated fields as POST plus `expectedUpdatedAt` from the original record. UUID and creation time remain unchanged; the server generates a new update time. A strong-consistency read plus a conditional Blob write (`onlyIfMatch`) rejects overlapping updates with HTTP 409 and the latest record. The UI preserves the draft and offers **View latest listing**; choosing it closes the draft so the contributor can edit the current version. Malformed requests return 400 and missing records return 404. Editing is public and anonymous, like adding a location.

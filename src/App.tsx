@@ -14,6 +14,7 @@ export default function App() {
   const [loadError, setLoadError] = useState('');
   const [tileError, setTileError] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<Restroom | null>(null);
   const [selected, setSelected] = useState<Restroom | null>(null);
   const [target, setTarget] = useState<(GeoResult & { token: number; zoom?: number }) | null>(null);
   const [searched, setSearched] = useState<GeoResult | null>(null);
@@ -70,11 +71,11 @@ export default function App() {
       {tileError && <div className="tile-alert" role="status">Some map tiles couldn’t load. Check your connection.<button className="icon-button" aria-label="Dismiss map notice" onClick={() => setTileError(false)}><X size={16} /></button></div>}
       {!selected && !loading && !loadError && visible === 0 && <div className="empty-state"><MapPin size={19} /><div><strong>No restrooms added here yet.</strong><span>Know a good one? Add it to The Royal Flush.</span></div></div>}
       <button ref={addButton} className="primary-button add-restroom" onClick={() => setAddOpen(true)}><Plus size={21} />Add Restroom</button>
-      {selected && <RestroomDetailSheet restroom={selected} onClose={closeDetails} notify={notify} />}
+      {selected && <RestroomDetailSheet restroom={selected} onClose={closeDetails} onEdit={() => setEditing(selected)} notify={notify} />}
       {info && <section className="info-card" aria-label="About The Royal Flush"><button className="icon-button" aria-label="Close about" onClick={() => setInfo(false)}><X size={18} /></button><Crown size={25} /><h2>A little help, wherever you go.</h2><p>Find a restroom. Share a code. Leave a rating. Anyone can contribute, and everything submitted is public.</p><p>Your location is used only when you tap My Location. It isn’t saved.</p><p>Maps and address search are provided by OpenStreetMap and Photon.</p></section>}
     </main>
     <footer className="app-footer"><span>The Royal Flush is community-powered. Restroom information and access codes may change.</span><a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Report a map issue</a></footer>
-    {addOpen && <AddRestroomSheet restrooms={restrooms} onClose={() => setAddOpen(false)} onView={restroom => { setAddOpen(false); choose(restroom); }} onSaved={restroom => { setRestrooms(items => [restroom, ...items.filter(r => r.id !== restroom.id)]); setAddOpen(false); choose(restroom); notify('Restroom added!'); }} />}
+    {(addOpen || editing) && <AddRestroomSheet key={editing?.id ?? 'new'} restroom={editing ?? undefined} restrooms={restrooms} onClose={() => { setAddOpen(false); setEditing(null); }} onView={restroom => { setAddOpen(false); setEditing(null); setRestrooms(items => items.map(item => item.id === restroom.id ? restroom : item)); choose(restroom); }} onSaved={restroom => { setRestrooms(items => [restroom, ...items.filter(r => r.id !== restroom.id)]); setAddOpen(false); setEditing(null); choose(restroom); notify(editing ? 'Restroom updated!' : 'Restroom added!'); }} />}
     <div className={`toast ${toast ? 'visible' : ''}`} role="status" aria-live="polite">{toast}</div>
   </div>;
 }

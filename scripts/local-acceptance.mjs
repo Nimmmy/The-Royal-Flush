@@ -27,6 +27,13 @@ try {
   const { restroom } = await created.json(); assert.equal(restroom.mensCode, '#2468'); assert.equal(restroom.womensCode, 'Ask cashier');
   const get = await fetch(`${origin}/api/restrooms`, { headers: { Cookie: '' }, cache: 'no-store' });
   assert.ok((await get.json()).restrooms.some(r => r.id === restroom.id)); results.sharedLocalStorage = 'passed across independent HTTP requests (not browsers)';
+  const update = await fetch(`${origin}/api/restrooms/${restroom.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...restroom, mensCode: 'Updated 2468', expectedUpdatedAt: restroom.updatedAt }) });
+  assert.equal(update.status, 200, (await update.clone().text()) + output.slice(-2500));
+  const { restroom: edited } = await update.json(); assert.equal(edited.id, restroom.id); assert.equal(edited.createdAt, restroom.createdAt); assert.equal(edited.womensCode, 'Ask cashier'); assert.equal(edited.mensCode, 'Updated 2468');
+  const stale = await fetch(`${origin}/api/restrooms/${restroom.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...restroom, expectedUpdatedAt: restroom.updatedAt }) });
+  assert.equal(stale.status, 409);
+  const independent = await fetch(`${origin}/api/restrooms`, { cache: 'no-store' });
+  assert.deepEqual((await independent.json()).restrooms.find(r => r.id === restroom.id), edited); results.fullListingEditAndConflict = 'passed';
   const geography = await fetch(`${origin}/api/geocode?q=2901%20Los%20Feliz%20Boulevard%20Los%20Angeles`);
   results.geocode = { status: geography.status, body: await geography.json() };
   console.log(JSON.stringify(results, null, 2));

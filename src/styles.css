@@ -5,3 +5,5 @@
 @media(max-width:360px){.brand h1{font-size:18px}.form-body{padding-left:16px;padding-right:16px}.form-footer{padding-left:16px;padding-right:16px}.form-footer .primary-button{min-width:150px}.rating-word{font-size:10px}.detail-sheet{max-height:48dvh}.with-detail .add-restroom{bottom:calc(48dvh + 29px)}}
 @media(max-height:600px) and (min-width:700px){.app-header{height:62px}.detail-sheet{max-height:calc(100% - 90px)}.add-restroom{bottom:20px}.empty-state{bottom:26px}.add-heading{padding:15px 24px}.form-footer{padding:12px 24px}.add-dialog{max-height:95dvh}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.detail-top-actions{display:flex;align-items:center;gap:2px}.edit-button{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 10px}.form-alert .text-button{display:block;margin-top:4px}.detail-topline{min-height:44px}

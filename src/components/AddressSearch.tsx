@@ -10,10 +10,11 @@ type Props = {
   restrooms?: Restroom[];
   onRestroom?: (r: Restroom) => void;
   onQueryChange?: () => void;
+  initialValue?: string;
 };
-export function AddressSearch({ onSelect, label = 'Search an address, city, or place', error, restrooms = [], onRestroom, onQueryChange }: Props) {
+export function AddressSearch({ onSelect, label = 'Search an address, city, or place', error, restrooms = [], onRestroom, onQueryChange, initialValue = '' }: Props) {
   const id = useId();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialValue);
   const [results, setResults] = useState<GeoResult[]>([]);
   const [busy, setBusy] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -22,7 +23,7 @@ export function AddressSearch({ onSelect, label = 'Search an address, city, or p
   const [active, setActive] = useState(-1);
   const [retry, setRetry] = useState(0);
   const cache = useRef(new Map<string, GeoResult[]>());
-  const selectedText = useRef('');
+  const selectedText = useRef(initialValue);
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const local = query.trim().length >= 2 ? restrooms.filter(r => r.locationName.toLowerCase().includes(query.toLowerCase().trim())).slice(0, 3) : [];

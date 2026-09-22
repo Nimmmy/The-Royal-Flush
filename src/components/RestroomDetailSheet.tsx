@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { X, Copy, Navigation, Share2, MapPin, KeyRound, MessageSquareText } from 'lucide-react';
+import { X, Copy, Navigation, Share2, MapPin, KeyRound, MessageSquareText, Pencil } from 'lucide-react';
 import type { Restroom } from '../types';
 import { StarRating } from './StarRating';
 import { copyText } from '../lib/api';
 
-export function RestroomDetailSheet({ restroom, onClose, notify }: { restroom: Restroom; onClose: () => void; notify: (text: string) => void }) {
+export function RestroomDetailSheet({ restroom, onClose, onEdit, notify }: { onEdit: () => void; restroom: Restroom; onClose: () => void; notify: (text: string) => void }) {
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => { title.current?.focus({ preventScroll: true }); }, [restroom.id]);
-  useEffect(() => { const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key); }, [onClose]);
+  useEffect(() => { const key = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('dialog[open]')) onClose(); }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key); }, [onClose]);
   async function copy(text: string, success: string) { try { await copyText(text); notify(success); } catch { notify('Copy isn’t available. Press and hold the text to copy it.'); } }
   async function share() {
     const url = new URL(window.location.origin); url.searchParams.set('restroom', restroom.id);
@@ -16,7 +16,7 @@ export function RestroomDetailSheet({ restroom, onClose, notify }: { restroom: R
   }
   return <section className="detail-sheet" aria-labelledby="detail-title">
     <div className="sheet-handle" aria-hidden="true" />
-    <div className="detail-topline"><span className="eyebrow">COMMUNITY RESTROOM</span><button className="icon-button" aria-label="Close restroom details" onClick={onClose}><X size={21} /></button></div>
+    <div className="detail-topline"><span className="eyebrow">COMMUNITY RESTROOM</span><div className="detail-top-actions"><button className="text-button edit-button" onClick={onEdit}><Pencil size={15} aria-hidden="true" />Edit</button><button className="icon-button" aria-label="Close restroom details" onClick={onClose}><X size={21} /></button></div></div>
     <h2 id="detail-title" ref={title} tabIndex={-1}>{restroom.locationName}</h2>
     <StarRating value={restroom.rating} />
     <div className="address-line"><MapPin size={18} aria-hidden="true" /><p>{restroom.address}</p><button className="icon-button" aria-label="Copy address" onClick={() => copy(restroom.address, 'Address copied')}><Copy size={17} /></button></div>
