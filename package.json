@@ -1,0 +1,39 @@
+{
+  "name": "the-royal-flush",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:netlify": "netlify dev",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "deploy": "netlify deploy --prod --build"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.0.0",
+    "@netlify/functions": "^5.0.0",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/leaflet": "^1.9.16",
+    "@types/leaflet.markercluster": "^1.5.5",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "jsdom": "^26.1.0",
+    "netlify-cli": "^23.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.0",
+    "vitest": "^3.2.0"
+  }
+}
