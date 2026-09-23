@@ -34,6 +34,16 @@ jobs:
           xcrun --find altool
       - name: Build the existing web application
         run: |
+          # Netlify CLI's bundled lock entries include extraneous binaries for
+          # other operating systems. Remove only those unused lock entries.
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          for (const [key, entry] of Object.entries(lock.packages)) {
+            if (entry.extraneous) delete lock.packages[key];
+          }
+          fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+          JS
           npm ci --no-audit --no-fund
           npm run build
       - name: Generate a temporary iOS toolchain proof
