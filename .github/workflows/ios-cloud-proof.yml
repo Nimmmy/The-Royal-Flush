@@ -1,0 +1,63 @@
+name: iOS cloud build proof
+
+on:
+  push:
+    branches: [codex/ios-cloud-build-proof]
+    paths:
+      - .github/workflows/ios-cloud-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-cloud-build-proof
+  cancel-in-progress: true
+
+jobs:
+  unsigned-ios-archive:
+    # Standard public-repository runner. No paid larger runner, credentials,
+    # deployment, release, App Store upload, or production data writes.
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - name: Check out this isolated branch
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Show Apple build tools
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --find altool
+      - name: Build the existing web application
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Generate a temporary iOS toolchain proof
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund @capacitor/core@8.5.2 @capacitor/cli@8.5.2 @capacitor/ios@8.5.2
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "app.royalflush.cloudproof",
+            "appName": "The Royal Flush",
+            "webDir": "dist",
+            "server": { "url": "https://the-royal-flush.netlify.app", "cleartext": false }
+          }
+          JSON
+          npx cap add ios
+      - name: Archive for iPhone without a paid Apple account
+        run: |
+          set -o pipefail
+          xcodebuild             -project ios/App/App.xcodeproj             -scheme App             -configuration Release             -destination 'generic/platform=iOS'             -archivePath "$RUNNER_TEMP/RoyalFlushProof.xcarchive"             CODE_SIGNING_ALLOWED=NO             archive > "$RUNNER_TEMP/ios-build.log" 2>&1 || { tail -n 120 "$RUNNER_TEMP/ios-build.log"; exit 1; }
+          test -f "$RUNNER_TEMP/RoyalFlushProof.xcarchive/Products/Applications/App.app/App"
+          /usr/bin/file "$RUNNER_TEMP/RoyalFlushProof.xcarchive/Products/Applications/App.app/App"
+          {
+            echo '## iOS cloud build verified'
+            echo 'Compiled and archived The Royal Flush for an iPhone (arm64) on a GitHub-hosted Mac.'
+            echo 'No Apple account, signing certificate, upload, deployment, or purchase was used.'
+            echo 'This is an unsigned toolchain proof, not an installable or App Store-ready release.'
+            echo 'Signed export, TestFlight upload and App Review remain unverified until Apple enrollment and authorized credentials are available.'
+          } >> "$GITHUB_STEP_SUMMARY"
