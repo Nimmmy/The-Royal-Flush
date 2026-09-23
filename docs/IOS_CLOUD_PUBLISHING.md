@@ -29,3 +29,13 @@ Apple Developer enrollment, identity verification, payment and legal agreements 
 - https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api
 - https://developer.apple.com/app-store/review/guidelines/#user-generated-content
 - https://developer.apple.com/app-store/review/guidelines/#minimum-functionality
+
+## Verified result — September 23, 2026
+
+The unsigned build completed successfully on a standard GitHub-hosted macOS 26 arm64 runner with Xcode 26.6 (17F113). The workflow compiled the existing web application, generated the Capacitor iOS project, and archived an arm64 iPhone executable with code signing disabled. It also verified that Apple's altool upload command is installed. No Apple credentials or paid Apple membership were used, and no archive was submitted or retained as a workflow artifact.
+
+Successful run: https://github.com/Nimmmy/The-Royal-Flush/actions/runs/35819879748
+
+The first attempt exposed extraneous Netlify CLI platform binaries in the existing package lock. The proof workflow removes only extraneous lock entries in the disposable runner before installing. The website's main branch and production deployment are unchanged.
+
+This verifies cloud Mac access and unsigned compilation. It does not verify signing, installation on a physical iPhone, authenticated TestFlight/App Store upload, or App Review acceptance. Those are separate next-stage gates. An App Store Connect Team API key can support automated certificate/profile management and upload; initial key authorization and account-holder tasks remain necessary. The user does not need to purchase or operate a Mac.
